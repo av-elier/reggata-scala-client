@@ -12,7 +12,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" % "play-json_2.11" % "2.5.9"
 )
 
-//Add Javafx8 library
+// Tests config
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % Test
+
+// Add Javafx8 library
 unmanagedJars in Compile += Attributed.blank(file(System.getenv("JAVA_HOME") + "/jre/lib/ext/jfxrt.jar"))
 
 // Fork a new JVM for 'run' and 'test:run', to avoid JavaFX double initialization problems

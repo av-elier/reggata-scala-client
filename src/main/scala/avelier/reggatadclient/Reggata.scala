@@ -107,7 +107,7 @@ object Reggata {
       (__ \ "root_dir").write[Boolean]
     )(unlift(OpenRepo.unapply))
 
-  implicit val closeRepoWrites: Writes[CloseRepo] = (__ \ "root_dir").write[String].contramap((unlift(CloseRepo.unapply)))
+  implicit val closeRepoWrites: Writes[CloseRepo] = (__ \ "root_dir").write[String].contramap(unlift(CloseRepo.unapply))
 
   implicit val addTagsWrites: Writes[AddTags] = (
     (__ \ "file").write[String] and
@@ -130,7 +130,7 @@ object Reggata {
       (__ \ "query").write[String]
     )(unlift(Search.unapply))
 
-  implicit val cancelCmdWrites: Writes[CancelCmd] = (__ \ "cmd_id").write[String].contramap((unlift(CancelCmd.unapply)))
+  implicit val cancelCmdWrites: Writes[CancelCmd] = (__ \ "cmd_id").write[String].contramap(unlift(CancelCmd.unapply))
 
   implicit val rgtReqMsgWrites: Writes[RgtReqMsg] = Writes[RgtReqMsg]{
     case m: OpenRepo => openRepoWrites.writes(m)
