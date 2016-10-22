@@ -3,9 +3,9 @@ package avelier.reggatadclient
 import java.util.PropertyResourceBundle
 import javafx.fxml.FXMLLoader
 
+import scalafx.Includes.jfxParent2sfx
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
-import scalafx.Includes._
 import scalafx.scene.Scene
 
 /**

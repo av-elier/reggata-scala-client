@@ -6,5 +6,7 @@ jdk:
   - oraclejdk8
 
 script:
+  - ls $JAVA_HOME/jre/lib/ext/jfxrt.jar
+  - sbt clean
   - sbt test
 
