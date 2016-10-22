@@ -8,7 +8,8 @@ version := "0.1-SNAPSHOT"
 scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
-  "org.scalafx" %% "scalafx" % "8.0.92-R10"
+  "org.scalafx" %% "scalafx" % "8.0.92-R10",
+  "com.typesafe.play" % "play-json_2.11" % "2.5.9"
 )
 
 //Add Javafx8 library
