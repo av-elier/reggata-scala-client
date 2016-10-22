@@ -1,8 +1,8 @@
 package avelier.reggatadclient
 
 import java.io.{InputStream, OutputStream}
-import java.net.Socket
 import java.nio.{ByteBuffer, ByteOrder}
+import java.net.Socket
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.logging.Logger
 import java.util.logging.Level._
@@ -11,45 +11,92 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 import scala.util.{Random, Try}
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import Reggata._
 
 /**
   * Created by av-elier on 21.10.16.
   */
-class Reggata(
-             val host: String = "127.0.0.1",
-             val port: Int = 9100
-             ) {
+class Reggata {
 
-  val msgReqQueue = new ArrayBlockingQueue[RgtReqMsg](1000, true)
+  val host: String = Settings.Reggatad.host
+  val port: Int = Settings.Reggatad.port
+  val msgReqQueue = new ArrayBlockingQueue[RgtReqMsg](Settings.Reggatad.reqBlockingQueueSize, true)
+  val msgRespQueue = new ArrayBlockingQueue[RgtRespMsg](Settings.Reggatad.respBlockingQueueSize, true)
 
 
   def conn = Try(new Socket(host, port))
   val log = Logger.getLogger("reggata")
 
-  private def writeLoop(in: InputStream, out: OutputStream) = {
+  private def writeLoop(out: OutputStream) = {
     log.info("writeLoop started")
     while (true) {
       val msg = msgReqQueue.take()
-      log.fine(s"writeLoop taken msg $msg")
       val boxedMsg = RgtReqMsgBox(msg)
-      log.fine("writeLoop writing msg")
+      log.fine(s"writeLoop writing msg $boxedMsg")
 
       out.write(boxedMsg.getRgtBytes)
       out.flush()
     }
   }
 
-  val writeThread = new Thread(new Runnable {
+  private def readLoop(in: InputStream) = {
+    log.info("readLoop started")
+    while (true) {
+      val buf = new Array[Byte](1024)
+      val l = in.read(buf)
+      log.info(s"Read msg looks like: ${new String(buf, 0, l)}")
+//      val size = { // TODO: uncomment when this will be implemented
+//        val buf = new Array[Byte](4)
+//        val l = in.read(buf)
+//        if (l != 4) throw new RegattadProtocolException("expected 4 bytes size")
+//        log.info(s"Size header looks like ${new String(buf)}")
+//        ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN).getInt
+//      }
+//      val msgJson = {
+//        val buf = new Array[Byte](size)
+//        val l = in.read(buf)
+//        if (l != size) throw new RegattadProtocolException(s"expected $size bytes of msg")
+//        new String(buf)
+//      }
+//      log.fine(s"readLoop read msg $msgJson")
+//
+//            val msg = Json.parse(msgJson).validate[RgtRespMsgBox] match {
+//              case s: JsSuccess[RgtRespMsgBox] => {
+//                val msgBox = s.get
+//                log.info(s"readLoop reads msg $msgBox")
+//                msgBox.rgtRespMsg.foreach(msgRespQueue.put)
+//              }
+//              case e: JsError => throw new RegattadProtocolException(s"error parsing $msgJson: $e")
+//            }
+    }
+  }
+
+  val socketThread = new Thread(new Runnable {
     override def run(): Unit = {
-      log.info("thread running")
-      while (true) {
-        conn.map(sock => (sock.getInputStream, sock.getOutputStream))
-          .map{ case (in, out) => writeLoop(in, out) }
-          .recover { case e => log.log(WARNING, "reggata socket error", e) }
-      }
+      log.info("socketThread running")
+      conn.map(sock => (sock.getInputStream, sock.getOutputStream))
+        .map { case (in, out) =>
+          val writeFuture = Future(writeLoop(out))
+          val readFuture = Future(readLoop(in))
+
+          val failed = Future.firstCompletedOf(Seq(readFuture, writeFuture))
+          failed.recover { case e: Throwable =>
+            log.warning(s"socketThread - future error $e")
+            throw e
+          }
+        }
+        .recover { case e =>
+          Thread.sleep(Settings.Reggatad.retryTimeout)
+          log.log(WARNING, "reggata socket error", e)
+        }
     }
   })
+
+  socketThread.start()
 
 }
 
@@ -58,6 +105,11 @@ object Reggata {
   class RegattadProtocolException(msg: String = "") extends Exception(msg: String)
 
   sealed trait RgtRespMsg
+  case class RgtRespMsgBox(
+                          cmd: String,
+                          rgtRespMsg: Option[RgtRespMsg]
+                          )
+  case class Ping() extends RgtRespMsg
 
   sealed trait RgtReqMsg
   case class RgtReqMsgBox(
@@ -100,6 +152,8 @@ object Reggata {
   case class GetFileInfo(file: String) extends RgtReqMsg
   case class Search(path: String, query: String) extends RgtReqMsg
   case class CancelCmd(id: String) extends RgtReqMsg
+
+  // Implicit conversion to/from json
 
   implicit val openRepoWrites: Writes[OpenRepo] = (
     (__ \ "root_dir").write[String] and
@@ -149,5 +203,7 @@ object Reggata {
       (__ \ "cmd").write[String] and
       (__ \ "args").write[RgtReqMsg]
     )(unlift(RgtReqMsgBox.unapply))
+
+  implicit val rgtRespMsgBoxReads = (__ \ "cmd").read[String].map(cmd => RgtRespMsgBox(cmd, None))
 
 }

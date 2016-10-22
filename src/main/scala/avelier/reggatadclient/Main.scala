@@ -15,10 +15,11 @@ import scalafx.scene.paint.Color._
   */
 object Main extends JFXApp {
   val rgt = new Reggata()
-  rgt.writeThread.start()
   //  rgt.msgReqQueue.add(Reggata.CloseRepo("/home/av-elier/tmp", "/home/av-elier/tmp/.reggata/", true))
   //  rgt.msgReqQueue.add(Reggata.CloseRepo("/home/av-elier/tmp")) // regattad not yet supports
   rgt.msgReqQueue.add(Reggata.AddTags("/home/av-elier/tmp/test.txt", Array("tag_scala")))
+
+
   stage = new PrimaryStage {
     title = "ScalaFX Hello World"
     scene = new Scene {
