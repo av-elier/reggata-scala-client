@@ -5,6 +5,11 @@ scala:
 jdk:
   - oraclejdk8
 
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
+
 script:
   - ls $JAVA_HOME/jre/lib/ext/jfxrt.jar
   - sbt clean
