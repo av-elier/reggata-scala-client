@@ -48,30 +48,30 @@ class Reggata {
     while (true) {
       val buf = new Array[Byte](1024)
       val l = in.read(buf)
-      log.info(s"Read msg looks like: ${new String(buf, 0, l)}")
-//      val size = { // TODO: uncomment when this will be implemented
-//        val buf = new Array[Byte](4)
-//        val l = in.read(buf)
-//        if (l != 4) throw new RegattadProtocolException("expected 4 bytes size")
-//        log.info(s"Size header looks like ${new String(buf)}")
-//        ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN).getInt
-//      }
-//      val msgJson = {
-//        val buf = new Array[Byte](size)
-//        val l = in.read(buf)
-//        if (l != size) throw new RegattadProtocolException(s"expected $size bytes of msg")
-//        new String(buf)
-//      }
-//      log.fine(s"readLoop read msg $msgJson")
-//
-//            val msg = Json.parse(msgJson).validate[RgtRespMsgBox] match {
-//              case s: JsSuccess[RgtRespMsgBox] => {
-//                val msgBox = s.get
-//                log.info(s"readLoop reads msg $msgBox")
-//                msgBox.rgtRespMsg.foreach(msgRespQueue.put)
-//              }
-//              case e: JsError => throw new RegattadProtocolException(s"error parsing $msgJson: $e")
-//            }
+      val size = {
+        val buf = new Array[Byte](4)
+        val l = in.read(buf)
+        if (l != 4) throw new RegattadProtocolException("expected 4 bytes size")
+        val size = ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN).getInt
+        log.info(s"Size header is $size")
+        size
+      }
+      val msgJson = {
+        val buf = new Array[Byte](size)
+        val l = in.read(buf)
+        if (l != size) throw new RegattadProtocolException(s"expected $size bytes of msg")
+        new String(buf)
+      }
+      log.fine(s"readLoop read msg $msgJson")
+
+      val msg = Json.parse(msgJson).validate[RgtRespMsgBox] match {
+        case s: JsSuccess[RgtRespMsgBox] => {
+          val msgBox = s.get
+          log.info(s"readLoop reads msg $msgBox")
+          msgBox.rgtRespMsg.foreach(msgRespQueue.put)
+        }
+        case e: JsError => throw new RegattadProtocolException(s"error parsing $msgJson: $e")
+      }
     }
   }
 
@@ -204,6 +204,6 @@ object Reggata {
       (__ \ "args").write[RgtReqMsg]
     )(unlift(RgtReqMsgBox.unapply))
 
-  implicit val rgtRespMsgBoxReads = (__ \ "cmd").read[String].map(cmd => RgtRespMsgBox(cmd, None))
+  implicit val rgtRespMsgBoxReads: Reads[RgtRespMsgBox] = (__ \ "cmd").read[String].map(cmd => RgtRespMsgBox(cmd, None))
 
 }
