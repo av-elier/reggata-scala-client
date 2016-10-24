@@ -20,7 +20,7 @@ import Reggata._
 /**
   * Created by av-elier on 21.10.16.
   */
-class Reggata {
+object Reggata {
 
   val host: String = Settings.Reggatad.host
   val port: Int = Settings.Reggatad.port
@@ -98,9 +98,7 @@ class Reggata {
 
   socketThread.start()
 
-}
 
-object Reggata {
 
   class RegattadProtocolException(msg: String = "") extends Exception(msg: String)
 

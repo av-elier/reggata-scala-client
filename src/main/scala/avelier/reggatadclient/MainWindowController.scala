@@ -11,7 +11,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scalafx.Includes._
 import scalafx.application.Platform
 import scalafx.beans.property.ReadOnlyStringWrapper
-import scalafx.scene.control.TreeItem
+import scalafx.scene.control.{TreeItem, TreeTableRow}
+import scalafx.scene.input.{MouseButton, MouseEvent}
 
 /**
   * Created by av-elier on 23.10.16.
@@ -25,6 +26,14 @@ class MainWindowController extends Initializable {
   override def initialize(url: URL, rb: ResourceBundle) {
     val currentDir = new File("/home/av-elier/tmp")
     val selectedDir = new File("/home/av-elier/tmp/.reggata")
+    filesTree.rowFactory = x => {
+      new TreeTableRow[File] {
+
+        onMouseClicked = (event: MouseEvent) => if (event.button == MouseButton.Primary) {
+          onFileSelect(item.value)
+        }
+      }
+    }
     dirsColName.cellValueFactory = x => new ReadOnlyStringWrapper(dirsColName, "file", x.value.getValue.getName)
     Future(findFiles(currentDir, selectedDir))
   }
@@ -49,5 +58,10 @@ class MainWindowController extends Initializable {
     } catch {
       case e: IOException => e.printStackTrace()
     }
+  }
+
+  private def onFileSelect(f: File) = {
+    Reggata.msgReqQueue.put(Reggata.GetFileInfo( f.getAbsolutePath ))
+    // TODO: handle response
   }
 }

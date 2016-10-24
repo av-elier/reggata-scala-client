@@ -12,9 +12,6 @@ import scalafx.scene.Scene
   * Created by av-elier on 21.10.16.
   */
 object Main extends JFXApp {
-  val rgt = new Reggata()
-
-//  rgt.msgReqQueue.add(Reggata.AddTags("/home/av-elier/tmp/test.txt", Array("tag_scala")))
 
   val bundle = new PropertyResourceBundle(getClass.getResource("/view/main-window-en.properties").openStream)
   val fxml = getClass.getResource("/view/main-window.fxml")
