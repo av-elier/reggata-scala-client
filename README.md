@@ -22,7 +22,7 @@ Sample Reggata API command looks like:
 This project implemetns API assuming that above json has all cmd-related info in `args`.
 There is class `RgtReqMsgBox` for top level of json, and sealed trait `RgtReqMsg` for `"args"`.
 
-Following `RgtReqMsgBox` marshals exaclty to above json:
+Following `RgtReqMsgBox` marshals exactly to above json:
 ```scala
 RgtReqMsgBox(
   "1",
