@@ -4,6 +4,12 @@
 
 A client for https://github.com/vlkv/reggatad
 
+## Quick Start
+- Install java8,
+- install javafx8 (`apt-get install openjfx` or already bundled with oracle-jdk),
+- install [sbt](http://www.scala-sbt.org/download.html),
+- run `sbt run` in cloned repo.
+
 ## API wrapping logic
 
 Sample Reggata API command looks like: 
