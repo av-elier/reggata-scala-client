@@ -15,8 +15,6 @@ import scala.util.{Random, Try}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import Reggata._
-
 /**
   * Created by av-elier on 21.10.16.
   */
@@ -78,8 +76,8 @@ object Reggata {
   val socketThread = new Thread(new Runnable {
     override def run(): Unit = {
       log.info("socketThread running")
-      conn.map(sock => (sock.getInputStream, sock.getOutputStream))
-        .map { case (in, out) =>
+      conn.map(sock => {
+        val (in, out) = (sock.getInputStream, sock.getOutputStream)
           val writeFuture = Future(writeLoop(out))
           val readFuture = Future(readLoop(in))
 
@@ -88,11 +86,10 @@ object Reggata {
             log.warning(s"socketThread - future error $e")
             throw e
           }
-        }
-        .recover { case e =>
+        }.recover { case e =>
           Thread.sleep(Settings.Reggatad.retryTimeout)
           log.log(WARNING, "reggata socket error", e)
-        }
+        })
     }
   })
 

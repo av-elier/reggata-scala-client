@@ -3,10 +3,11 @@ package avelier.reggatadclient
 import java.util.PropertyResourceBundle
 import javafx.fxml.FXMLLoader
 
-import scalafx.Includes.jfxParent2sfx
+import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.scene.Scene
+import scalafx.stage.WindowEvent
 
 /**
   * Created by av-elier on 21.10.16.
@@ -22,5 +23,6 @@ object Main extends JFXApp {
   stage = new PrimaryStage() {
     title = "Reggata Scala"
     scene = new Scene(root)
+    onCloseRequest = (event: WindowEvent) => System.exit(0)
   }
 }
