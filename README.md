@@ -1,6 +1,6 @@
-# reggatad-scala-client
+# reggata-scala-client
 
-[![Build Status](https://travis-ci.org/av-elier/reggatad-scala-client.svg?branch=master)](https://travis-ci.org/av-elier/reggatad-scala-client)
+[![Build Status](https://travis-ci.org/av-elier/reggata-scala-client.svg?branch=master)](https://travis-ci.org/av-elier/reggata-scala-client)
 
 A client for https://github.com/vlkv/reggatad
 
