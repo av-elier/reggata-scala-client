@@ -2,17 +2,19 @@ package avelier.reggatadclient
 
 import java.io.{File, IOException}
 import java.net.URL
-import java.util.ResourceBundle
-import java.util.concurrent.{ScheduledExecutorService, ScheduledThreadPoolExecutor}
+import java.util.{PropertyResourceBundle, ResourceBundle}
+import java.util.concurrent.ScheduledThreadPoolExecutor
 import javafx.fxml.{FXML, Initializable}
-import javafx.scene.control.{TreeTableColumn, TreeTableView}
+import javafx.scene.control.{MenuItem, TreeTableColumn, TreeTableView}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalafx.Includes._
 import scalafx.application.Platform
 import scalafx.beans.property.ReadOnlyStringWrapper
+import scalafx.event.ActionEvent
 import scalafx.scene.control.{TreeItem, TreeTableRow}
 import scalafx.scene.input.{MouseButton, MouseEvent}
+import scalafx.stage.DirectoryChooser
 
 /**
   * Created by av-elier on 23.10.16.
@@ -20,6 +22,9 @@ import scalafx.scene.input.{MouseButton, MouseEvent}
 class MainWindowController extends Initializable {
   @FXML var filesTree: TreeTableView[File] = _
   @FXML var dirsColName: TreeTableColumn[File, String] = _
+  @FXML var menuNew: MenuItem = _
+
+  val bundle = new PropertyResourceBundle(getClass.getResource("/view/main-window-en.properties").openStream)
 
   implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(new ScheduledThreadPoolExecutor(1))
 
@@ -36,6 +41,16 @@ class MainWindowController extends Initializable {
     }
     dirsColName.cellValueFactory = x => new ReadOnlyStringWrapper(dirsColName, "file", x.value.getValue.getName)
     Future(findFiles(currentDir, selectedDir))
+
+    menuNew.onAction = (event: ActionEvent) => {
+      val dialog = new DirectoryChooser()
+      dialog.setTitle(bundle.getString("dialog.openrepo.title"))
+
+      val result = Option(dialog.showDialog(Main.stage))
+      result.foreach(file => {
+        Reggata.msgReqQueue.add(Reggata.OpenRepo(file.getAbsolutePath))
+      })
+    }
   }
 
   private def findFiles(dir: File, expandTo: File, parent: TreeItem[File] = null) {

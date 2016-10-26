@@ -19,18 +19,9 @@
       <menus>
         <Menu mnemonicParsing="false" text="%menu.title.file">
           <items>
-            <MenuItem mnemonicParsing="false" text="%menu.title.new" />
-            <MenuItem mnemonicParsing="false" text="%menu.title.open" />
-            <Menu mnemonicParsing="false" text="%menu.title.open.recent" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="%menu.title.close" />
-            <MenuItem mnemonicParsing="false" text="%menu.title.save" />
-            <MenuItem mnemonicParsing="false" text="%menu.title.save.as" />
-            <MenuItem mnemonicParsing="false" text="%menu.title.revert" />
+            <MenuItem fx:id="menuNew" mnemonicParsing="false" text="%menu.title.new" />
             <SeparatorMenuItem mnemonicParsing="false" />
             <MenuItem mnemonicParsing="false" text="%menu.title.preferences" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="%menu.title.quit" />
           </items>
         </Menu>
       </menus>

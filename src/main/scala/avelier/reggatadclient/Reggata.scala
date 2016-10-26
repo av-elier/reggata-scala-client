@@ -138,7 +138,7 @@ object Reggata {
       RgtReqMsgBox(id, cmd, rgtReqMsg)
     }
   }
-  case class OpenRepo(rootDir: String, dbDir: String, init: Boolean) extends RgtReqMsg
+  case class OpenRepo(rootDir: String, dbDir: Option[String] = None, init: Boolean = true) extends RgtReqMsg
   case class CloseRepo(rootDir: String) extends RgtReqMsg
   case class AddTags(file: String, tags: Array[String]) extends RgtReqMsg
   case class RemoveTags(file: String, tags: Array[String]) extends RgtReqMsg
@@ -153,8 +153,8 @@ object Reggata {
   implicit val openRepoWrites: Writes[OpenRepo] = (
     (__ \ "root_dir").write[String] and
       (__ \ "db_dir").write[String] and
-      (__ \ "root_dir").write[Boolean]
-    )(unlift(OpenRepo.unapply))
+      (__ \ "init_if_not_exists").write[Boolean]
+    )(c => (c.rootDir, c.dbDir.getOrElse(s"${c.rootDir}/.rgt"), c.init))
 
   implicit val closeRepoWrites: Writes[CloseRepo] = (__ \ "root_dir").write[String].contramap(unlift(CloseRepo.unapply))
 
