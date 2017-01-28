@@ -7,6 +7,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import javafx.fxml.{FXML, Initializable}
 import javafx.scene.control.{MenuItem, TreeTableColumn, TreeTableView}
 
+import avelier.reggatadclient.ReggataMessages._
+
 import scala.concurrent.{ExecutionContext, Future}
 import scalafx.Includes._
 import scalafx.application.Platform
@@ -48,7 +50,7 @@ class MainWindowController extends Initializable {
 
       val result = Option(dialog.showDialog(Main.stage))
       result.foreach(file => {
-        Reggata.msgReqQueue.add(Reggata.OpenRepo(file.getAbsolutePath))
+        Reggata.msgReqQueue.add(OpenRepo(file.getAbsolutePath))
       })
     }
   }
@@ -76,7 +78,7 @@ class MainWindowController extends Initializable {
   }
 
   private def onFileSelect(f: File) = {
-    Reggata.msgReqQueue.put(Reggata.GetFileInfo( f.getAbsolutePath ))
+    Reggata.msgReqQueue.put(GetFileInfo( f.getAbsolutePath ))
     // TODO: handle response
   }
 }
