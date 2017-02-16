@@ -7,6 +7,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import javafx.fxml.{FXML, Initializable}
 import javafx.scene.control.{MenuItem, TreeTableColumn, TreeTableView}
 
+import avelier.reggatadclient.ReggataMessages.RgtReqMsgBox.{OpenRepo, GetFileInfo}
 import avelier.reggatadclient.ReggataMessages._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,14 +32,11 @@ class MainWindowController extends Initializable {
   implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(new ScheduledThreadPoolExecutor(1))
 
   override def initialize(url: URL, rb: ResourceBundle) {
-    val currentDir = new File("/home/av-elier/tmp")
-    val selectedDir = new File("/home/av-elier/tmp/.reggata")
+    val currentDir = new File("/home/av-elier/Pictures")
+    val selectedDir = new File("/home/av-elier/Pictures/.reggata") // TODO: open last or open user-selected
     filesTree.rowFactory = x => {
       new TreeTableRow[File] {
-
-        onMouseClicked = (event: MouseEvent) => if (event.button == MouseButton.Primary) {
-          onFileSelect(item.value)
-        }
+        onMouseClicked = (event: MouseEvent) => if (event.button == MouseButton.Primary) onFileSelect(item.value)
       }
     }
     dirsColName.cellValueFactory = x => new ReadOnlyStringWrapper(dirsColName, "file", x.value.getValue.getName)
@@ -50,7 +48,7 @@ class MainWindowController extends Initializable {
 
       val result = Option(dialog.showDialog(Main.stage))
       result.foreach(file => {
-        Reggata.msgReqQueue.add(OpenRepo(file.getAbsolutePath))
+        Reggata.msgToRgtQueue.add(RgtReqMsgBox(OpenRepo(file.getAbsolutePath)))
       })
     }
   }
@@ -78,7 +76,7 @@ class MainWindowController extends Initializable {
   }
 
   private def onFileSelect(f: File) = {
-    Reggata.msgReqQueue.put(GetFileInfo( f.getAbsolutePath ))
+    Reggata.msgToRgtQueue.put(RgtReqMsgBox(GetFileInfo( f.getAbsolutePath )))
     // TODO: handle response
   }
 }

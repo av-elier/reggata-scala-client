@@ -8,10 +8,8 @@ import java.util.logging.Logger
 import java.util.logging.Level._
 
 import avelier.reggatadclient.ReggataMessages._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
-import scala.util.{Random, Try}
+import scala.util.Try
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -22,8 +20,8 @@ object Reggata {
 
   val host: String = Settings.Reggatad.host
   val port: Int = Settings.Reggatad.port
-  val msgReqQueue = new ArrayBlockingQueue[RgtReqMsg](Settings.Reggatad.reqBlockingQueueSize, true)
-  val msgRespQueue = new ArrayBlockingQueue[RgtRespMsg](Settings.Reggatad.respBlockingQueueSize, true)
+  val msgToRgtQueue = new ArrayBlockingQueue[MsgToRgt](Settings.Reggatad.reqBlockingQueueSize, true)
+  val msgFromRgtQueue = new ArrayBlockingQueue[MsgFromRgt](Settings.Reggatad.respBlockingQueueSize, true)
 
 
   def conn = Try(new Socket(host, port))
@@ -32,11 +30,14 @@ object Reggata {
   private def writeLoop(out: OutputStream) = {
     log.info("writeLoop started")
     while (true) {
-      val msg = msgReqQueue.take()
-      val boxedMsg = RgtReqMsgBox(msg)
-      log.fine(s"writeLoop writing msg $boxedMsg")
-
-      out.write(boxedMsg.getRgtBytes)
+      val msg = msgToRgtQueue.take()
+      msg match {
+        case boxedMsg: RgtReqMsgBox =>
+          log.info(s"writeLoop writing msg $boxedMsg")
+        case msg: PongMsgToRgt =>
+          log.info(s"writeLoop writing $msg")
+      }
+      out.write(msg.getRgtBytes)
       out.flush()
     }
   }
@@ -44,12 +45,10 @@ object Reggata {
   private def readLoop(in: InputStream) = {
     log.info("readLoop started")
     while (true) {
-      val buf = new Array[Byte](1024)
-      val l = in.read(buf)
       val size = {
         val buf = new Array[Byte](4)
         val l = in.read(buf)
-        if (l != 4) throw new RegattadProtocolException("expected 4 bytes size")
+        if (l != 4) throw new ReggattaProtocolException("expected 4 bytes size")
         val size = ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN).getInt
         log.info(s"Size header is $size")
         size
@@ -57,18 +56,24 @@ object Reggata {
       val msgJson = {
         val buf = new Array[Byte](size)
         val l = in.read(buf)
-        if (l != size) throw new RegattadProtocolException(s"expected $size bytes of msg")
+        if (l != size) throw new ReggattaProtocolException(s"expected $size bytes of msg")
         new String(buf)
       }
       log.fine(s"readLoop read msg $msgJson")
 
-      val msg = Json.parse(msgJson).validate[RgtRespMsgBox] match {
-        case s: JsSuccess[RgtRespMsgBox] => {
-          val msgBox = s.get
-          log.info(s"readLoop reads msg $msgBox")
-          msgBox.rgtRespMsg.foreach(msgRespQueue.put)
-        }
-        case e: JsError => throw new RegattadProtocolException(s"error parsing $msgJson: $e")
+      val msg = MsgFromRgt(msgJson)
+      msg match {
+        case Some(x) =>
+          log.info (s"readLoop reads msg $msg")
+          x match {
+            case _: PingMsgFromRgt =>
+              msgToRgtQueue.add(PongMsgToRgt("Yes"))
+            case x: RespMsgFromRgt =>
+              ???
+          }
+        case None =>
+          log.warning(s"could not parse MsgFromRgt $msgJson")
+//          throw new ReggattaProtocolException(s"could not parse MsgFromRgt $msgJson") // TODO: everything should be parsed
       }
     }
   }
