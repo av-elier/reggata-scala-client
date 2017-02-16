@@ -3,6 +3,8 @@ package avelier.reggatadclient
 import java.nio.{ByteBuffer, ByteOrder}
 
 import avelier.reggatadclient.Reggata._
+import avelier.reggatadclient.ReggataMessages._
+import avelier.reggatadclient.ReggataMessages.RgtReqMsgBox._
 import org.scalatest._
 
 /**
@@ -11,7 +13,8 @@ import org.scalatest._
 class ReggataSpec extends FlatSpec {
 
   "Reggata commands" should "serialize to reggatad format" in {
-    val bytes = RgtReqMsgBox(OpenRepo("~", Some("~/.reggata"), false), "123").getRgtBytes(rgtReqMsgBoxWrites)
+
+    val bytes = RgtReqMsgBox(OpenRepo("~", Some("~/.reggata"), false), "123").getRgtBytes
     val size = ByteBuffer.wrap(bytes, 0, 4).order(ByteOrder.LITTLE_ENDIAN).getInt
     val json = new String(bytes, 4, size)
 
