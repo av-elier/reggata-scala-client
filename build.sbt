@@ -11,7 +11,8 @@ libraryDependencies ++= Seq(
   "org.scalafx" %% "scalafx" % "8.0.92-R10",
   "org.scalafx" %% "scalafxml-core-sfx8" % "0.3",
   "com.typesafe" % "config" % "1.3.1",
-  "com.typesafe.play" % "play-json_2.11" % "2.5.9"
+  "com.typesafe.play" % "play-json_2.11" % "2.5.9",
+  "com.typesafe.akka" %% "akka-stream" % "2.4.17"
 )
 
 // Tests config

@@ -7,7 +7,12 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.logging.Logger
 import java.util.logging.Level._
 
+import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.stream._
+import akka.stream.scaladsl._
 import avelier.reggatadclient.ReggataMessages._
+import org.reactivestreams.Publisher
 
 import scala.util.Try
 import scala.concurrent.Future
@@ -18,11 +23,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 object Reggata {
 
+  implicit val system = ActorSystem("QuickStart")
+  implicit val materializer = ActorMaterializer()
+
   val host: String = Settings.Reggatad.host
   val port: Int = Settings.Reggatad.port
-  val msgToRgtQueue = new ArrayBlockingQueue[MsgToRgt](Settings.Reggatad.reqBlockingQueueSize, true)
-  val msgFromRgtQueue = new ArrayBlockingQueue[MsgFromRgt](Settings.Reggatad.respBlockingQueueSize, true)
+  private val msgToRgtQueue = new ArrayBlockingQueue[MsgToRgt](Settings.Reggatad.reqBlockingQueueSize, true)
+  private val msgFromRgtQueue = new ArrayBlockingQueue[MsgFromRgt](Settings.Reggatad.respBlockingQueueSize, true)
 
+  val msgFromRgtSource: Source[MsgFromRgt, NotUsed] = Source.fromIterator(() => Iterator.continually(msgFromRgtQueue.take()))
+  val msgToRgtSource: Sink[MsgToRgt, Future[akka.Done]] = Sink.foreach[MsgToRgt](msg => msgToRgtQueue.put(msg))
 
   def conn = Try(new Socket(host, port))
   val log = Logger.getLogger("reggata")
@@ -61,13 +71,13 @@ object Reggata {
       }
       log.fine(s"readLoop read msg $msgJson")
 
-      val msg = MsgFromRgt(msgJson)
+      val msg = MsgFromRgt(msgJson) // rewrite in akka streams
       msg match {
         case Some(x) =>
           log.info (s"readLoop reads msg $msg")
           x match {
             case _: PingMsgFromRgt =>
-              msgToRgtQueue.add(PongMsgToRgt("Yes"))
+              msgToRgtQueue.add(PongMsgToRgt("Yes")) // msgToRgtSource
             case x: RespMsgFromRgt =>
               ???
           }
