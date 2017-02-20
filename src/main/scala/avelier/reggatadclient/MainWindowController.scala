@@ -7,10 +7,12 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import javafx.fxml.{FXML, Initializable}
 import javafx.scene.control.{MenuItem, TreeTableColumn, TreeTableView}
 
-import avelier.reggatadclient.ReggataMessages.RgtReqMsgBox.{OpenRepo, GetFileInfo}
+import akka.stream.scaladsl.{Flow, Sink, Source}
+import avelier.reggatadclient.ReggataMessages.RgtReqMsgBox.{GetFileInfo, OpenRepo}
 import avelier.reggatadclient.ReggataMessages._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.Try
 import scalafx.Includes._
 import scalafx.application.Platform
 import scalafx.beans.property.ReadOnlyStringWrapper
@@ -48,7 +50,14 @@ class MainWindowController extends Initializable {
 
       val result = Option(dialog.showDialog(Main.stage))
       result.foreach(file => {
-        Reggata.msgToRgtQueue.add(RgtReqMsgBox(OpenRepo(file.getAbsolutePath)))
+        Reggata.toRgt(RgtReqMsgBox(OpenRepo(file.getAbsolutePath)))
+        Sink.cancelled
+        val p = Promise[Unit]()
+        val ks = Reggata.addRgtSink(Sink.foreach[MsgFromRgt](x => {
+          println(s"Got responce in MainWindowController $x")
+          p.complete(Try(()))
+        }))
+        p.future.foreach(_ => ks.shutdown())
       })
     }
   }
@@ -76,7 +85,7 @@ class MainWindowController extends Initializable {
   }
 
   private def onFileSelect(f: File) = {
-    Reggata.msgToRgtQueue.put(RgtReqMsgBox(GetFileInfo( f.getAbsolutePath )))
+    Reggata.toRgt(RgtReqMsgBox(GetFileInfo( f.getAbsolutePath )))
     // TODO: handle response
   }
 }

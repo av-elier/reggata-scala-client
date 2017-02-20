@@ -8,10 +8,10 @@ import java.util.logging.Logger
 import java.util.logging.Level._
 
 import akka.NotUsed
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Cancellable}
 import akka.stream._
 import akka.stream.scaladsl._
-import avelier.reggatadclient.ReggataMessages._
+import avelier.reggatadclient.ReggataMessages.{RgtReqMsgBox, _}
 import org.reactivestreams.Publisher
 
 import scala.util.Try
@@ -29,10 +29,10 @@ object Reggata {
   val host: String = Settings.Reggatad.host
   val port: Int = Settings.Reggatad.port
   private val msgToRgtQueue = new ArrayBlockingQueue[MsgToRgt](Settings.Reggatad.reqBlockingQueueSize, true)
-  private val msgFromRgtQueue = new ArrayBlockingQueue[MsgFromRgt](Settings.Reggatad.respBlockingQueueSize, true)
+  private val msgFromRgtPublisher = new PutPublisher[MsgFromRgt]()
 
-  val msgFromRgtSource: Source[MsgFromRgt, NotUsed] = Source.fromIterator(() => Iterator.continually(msgFromRgtQueue.take()))
-  val msgToRgtSource: Sink[MsgToRgt, Future[akka.Done]] = Sink.foreach[MsgToRgt](msg => msgToRgtQueue.put(msg))
+  val msgFromRgtSource: Source[MsgFromRgt, NotUsed] = Source.fromPublisher(msgFromRgtPublisher)
+  val msgToRgtSink: Sink[MsgToRgt, Future[akka.Done]] = Sink.foreach[MsgToRgt](msg => msgToRgtQueue.put(msg))
 
   def conn = Try(new Socket(host, port))
   val log = Logger.getLogger("reggata")
@@ -75,12 +75,12 @@ object Reggata {
       msg match {
         case Some(x) =>
           log.info (s"readLoop reads msg $msg")
-          x match {
-            case _: PingMsgFromRgt =>
-              msgToRgtQueue.add(PongMsgToRgt("Yes")) // msgToRgtSource
-            case x: RespMsgFromRgt =>
-              ???
-          }
+          msgFromRgtPublisher.put(x)
+//          x match {
+//            case _: PingMsgFromRgt =>
+//              msgToRgtQueue.add(PongMsgToRgt("Yes")) // msgToRgtSink
+//            case x: RespMsgFromRgt =>
+//          }
         case None =>
           log.warning(s"could not parse MsgFromRgt $msgJson")
 //          throw new ReggattaProtocolException(s"could not parse MsgFromRgt $msgJson") // TODO: everything should be parsed
@@ -110,7 +110,24 @@ object Reggata {
 
   socketThread.start()
 
+  val broadcastFromRgt = msgFromRgtSource.toMat(BroadcastHub.sink)(Keep.right).run()
 
+  def addRgtSink(sink: Sink[MsgFromRgt, _]): KillSwitch = {
+    val g: RunnableGraph[KillSwitch] = broadcastFromRgt.viaMat(KillSwitches.single)(Keep.right).to(sink)
+    g.run()
+  }
 
+  def toRgt(m: MsgToRgt) = {
+    Source.single(m).to(Reggata.msgToRgtSink).run()
+  }
+
+  val pongFlow: Flow[MsgFromRgt, MsgToRgt, NotUsed] = Flow.apply[MsgFromRgt].flatMapConcat{
+    case _: PingMsgFromRgt => Source.single(PongMsgToRgt("Yes"))
+    case _ => Source.empty
+  }
+
+  val pongGraph: RunnableGraph[KillSwitch] = broadcastFromRgt.viaMat(KillSwitches.single)(Keep.right).via(pongFlow).to(msgToRgtSink)
+  val pongSwitch = pongGraph.run()
+//  pongSwitch.shutdown()
 
 }
