@@ -34,8 +34,11 @@ class MainWindowController extends Initializable {
   implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(new ScheduledThreadPoolExecutor(1))
 
   override def initialize(url: URL, rb: ResourceBundle) {
-    val currentDir = new File("/home/av-elier/Pictures")
-    val selectedDir = new File("/home/av-elier/Pictures/.reggata") // TODO: open last or open user-selected
+    val defaultDir = "/home/av-elier/Pictures" // TODO: open last or open user-selected
+    val currentDir = new File(defaultDir )
+    val selectedDir = new File(s"$defaultDir/.reggata")
+    Reggata.toRgt(RgtReqMsgBox(OpenRepo(defaultDir)))
+
     filesTree.rowFactory = x => {
       new TreeTableRow[File] {
         onMouseClicked = (event: MouseEvent) => if (event.button == MouseButton.Primary) onFileSelect(item.value)
@@ -51,7 +54,6 @@ class MainWindowController extends Initializable {
       val result = Option(dialog.showDialog(Main.stage))
       result.foreach(file => {
         Reggata.toRgt(RgtReqMsgBox(OpenRepo(file.getAbsolutePath)))
-        Sink.cancelled
         val p = Promise[Unit]()
         val ks = Reggata.addRgtSink(Sink.foreach[MsgFromRgt](x => {
           println(s"Got responce in MainWindowController $x")
