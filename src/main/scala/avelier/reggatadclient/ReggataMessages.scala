@@ -2,6 +2,7 @@ package avelier.reggatadclient
 
 import java.nio.{ByteBuffer, ByteOrder}
 
+import avelier.reggatadclient.ReggataMessages.RespMsgFromRgt.{RgtRespAny, RgtRespData}
 import avelier.reggatadclient.ReggataMessages.RgtReqMsgBox.Cmd
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Json, Reads, Writes, _}
@@ -35,9 +36,14 @@ object ReggataMessages {
     }
   }
 
-  case class RespMsgFromRgt(id: String, code: Int, msg: Option[String]) extends MsgFromRgt
-
   case class PingMsgFromRgt(question: String) extends MsgFromRgt
+  case class RespMsgFromRgt(id: String, code: Int, msg: Option[String], data: Option[RgtRespData]) extends MsgFromRgt
+
+  object RespMsgFromRgt {
+    sealed trait RgtRespData
+
+    case class RgtRespAny(a: JsObject) extends RgtRespData
+  }
 
 
   sealed trait MsgToRgt {
@@ -156,13 +162,16 @@ object ReggataMessages {
     case m: RgtReqMsgBox => rgtReqMsgBoxWrites.writes(m)
   }
 
-  implicit val rgtPingMsgFromRgt: Reads[PingMsgFromRgt] = (__ \ "question").read[String].map(cmd => PingMsgFromRgt(cmd))
+  implicit val rgtRgtRespData: Reads[RgtRespData] = __.read[JsObject].map[RgtRespData](a => RgtRespAny(a))
 
   implicit val rgtRespMsgBoxReads: Reads[RespMsgFromRgt] = (
     (__ \ "id").read[String] and
       (__ \ "code").read[Int] and
-      (__ \ "msg").readNullable[String]
+      (__ \ "msg").readNullable[String] and
+      (__ \ "data").readNullable[RgtRespData]
     ) (RespMsgFromRgt.apply _)
+
+  implicit val rgtPingMsgFromRgt: Reads[PingMsgFromRgt] = (__ \ "question").read[String].map(cmd => PingMsgFromRgt(cmd))
 
   implicit val msgFromRgtReads: Reads[MsgFromRgt] = Reads[MsgFromRgt] {
     case m: PingMsgFromRgt => rgtPingMsgFromRgt.reads(m)

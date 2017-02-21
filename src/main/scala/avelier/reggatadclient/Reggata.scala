@@ -76,11 +76,6 @@ object Reggata {
         case Some(x) =>
           log.info (s"readLoop reads msg $msg")
           msgFromRgtPublisher.put(x)
-//          x match {
-//            case _: PingMsgFromRgt =>
-//              msgToRgtQueue.add(PongMsgToRgt("Yes")) // msgToRgtSink
-//            case x: RespMsgFromRgt =>
-//          }
         case None =>
           log.warning(s"could not parse MsgFromRgt $msgJson")
 //          throw new ReggattaProtocolException(s"could not parse MsgFromRgt $msgJson") // TODO: everything should be parsed
