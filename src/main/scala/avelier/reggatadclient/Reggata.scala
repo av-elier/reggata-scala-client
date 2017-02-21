@@ -126,8 +126,7 @@ object Reggata {
     case _ => Source.empty
   }
 
-  val pongGraph: RunnableGraph[KillSwitch] = broadcastFromRgt.viaMat(KillSwitches.single)(Keep.right).via(pongFlow).to(msgToRgtSink)
-  val pongSwitch = pongGraph.run()
-//  pongSwitch.shutdown()
-
+  val pongGraph = broadcastFromRgt.via(pongFlow).to(msgToRgtSink)
+  pongGraph.run()
+ 
 }
