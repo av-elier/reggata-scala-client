@@ -20,9 +20,9 @@ object ReggataMessages {
     def apply[T >: MsgFromRgt](str: String)(implicit reader: Reads[T]): Option[T] = {
       (
         Json.parse(str).validate[RespMsgFromRgt] match {
-          case s: JsSuccess[RespMsgFromRgt] =>
-            Some(RespMsgFromRgt("asd", None))
-          case e: JsError =>
+          case m: JsSuccess[RespMsgFromRgt] =>
+            Some(m.get)
+          case _ =>
             None
         }).orElse {
         Json.parse(str).validate[PingMsgFromRgt] match {
@@ -35,7 +35,7 @@ object ReggataMessages {
     }
   }
 
-  case class RespMsgFromRgt(cmd: String, rgtRespMsg: Option[Any]) extends MsgFromRgt
+  case class RespMsgFromRgt(id: String, code: Int, msg: Option[String]) extends MsgFromRgt
 
   case class PingMsgFromRgt(question: String) extends MsgFromRgt
 
@@ -158,7 +158,11 @@ object ReggataMessages {
 
   implicit val rgtPingMsgFromRgt: Reads[PingMsgFromRgt] = (__ \ "question").read[String].map(cmd => PingMsgFromRgt(cmd))
 
-  implicit val rgtRespMsgBoxReads: Reads[RespMsgFromRgt] = (__ \ "cmd").read[String].map(cmd => RespMsgFromRgt(cmd, None))
+  implicit val rgtRespMsgBoxReads: Reads[RespMsgFromRgt] = (
+    (__ \ "id").read[String] and
+      (__ \ "code").read[Int] and
+      (__ \ "msg").readNullable[String]
+    ) (RespMsgFromRgt.apply _)
 
   implicit val msgFromRgtReads: Reads[MsgFromRgt] = Reads[MsgFromRgt] {
     case m: PingMsgFromRgt => rgtPingMsgFromRgt.reads(m)
